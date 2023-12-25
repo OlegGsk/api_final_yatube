@@ -12,3 +12,4 @@ urlpatterns = [
     ),
 ]
 
+print(1)
