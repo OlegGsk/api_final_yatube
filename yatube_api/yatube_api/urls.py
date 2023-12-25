@@ -11,5 +11,3 @@ urlpatterns = [
         name='redoc'
     ),
 ]
-
-print(1)
