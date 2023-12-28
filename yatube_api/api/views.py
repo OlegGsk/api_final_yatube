@@ -2,34 +2,28 @@ from django.shortcuts import get_object_or_404
 from posts.models import Comment, Follow, Group, Post
 from rest_framework import filters, viewsets
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from .mixins import ListCreateViewSet
-from .permissions import IsOwnerOrReadOnly
+from .mixins import ListCreateViewSet, CommentPostPermissionMixin
 from .serializers import (CommentSerializer, FollowSerializer, GroupSerializer,
                           PostSerializer)
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(CommentPostPermissionMixin):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
     pagination_class = LimitOffsetPagination
-    lookup_url_kwarg = 'id'
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     def get_object(self):
-        obj = get_object_or_404(Post, pk=self.kwargs.get('id'))
-        return obj
+        get_object_or_404(Post, pk=self.kwargs['id'])
+        return super().get_object()
 
 
-class CommentsViewSet(viewsets.ModelViewSet):
+class CommentsViewSet(CommentPostPermissionMixin):
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
-    lookup_url_kwarg = 'id'
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user,
@@ -40,8 +34,8 @@ class CommentsViewSet(viewsets.ModelViewSet):
         return comments
 
     def get_object(self):
-        get_object_or_404(Comment, pk=self.kwargs.get('id'),
-                          post_id=self.kwargs.get('post_id'))
+        get_object_or_404(Comment, pk=self.kwargs['id'],
+                          post=self.get_post())
         return super().get_object()
 
     def get_post(self):
